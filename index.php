@@ -2,15 +2,24 @@
 header('Content-Type: application/json');
 
 $path = $_GET['path'] ?? '';
+$method = $_SERVER['REQUEST_METHOD'];
 $body = file_get_contents('php://input');
+
+// Authorization header дамжуулах
+$headers = [];
+foreach (getallheaders() as $key => $value) {
+    if (strtolower($key) === 'authorization') {
+        $headers[] = "Authorization: $value";
+    }
+}
+
+$headers[] = 'Content-Type: application/json';
 
 $ch = curl_init("https://merchant-sandbox.qpay.mn/v2/" . $path);
 curl_setopt_array($ch, [
     CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_CUSTOMREQUEST  => $_SERVER['REQUEST_METHOD'],
-    CURLOPT_HTTPHEADER     => [
-        'Content-Type: application/json'
-    ],
+    CURLOPT_CUSTOMREQUEST  => $method,
+    CURLOPT_HTTPHEADER     => $headers,
     CURLOPT_POSTFIELDS     => $body,
     CURLOPT_TIMEOUT        => 30,
 ]);
@@ -18,8 +27,11 @@ curl_setopt_array($ch, [
 $response = curl_exec($ch);
 
 if ($response === false) {
-    echo json_encode(['error' => curl_error($ch)]);
+    echo json_encode([
+        'error' => curl_error($ch)
+    ]);
 } else {
     echo $response;
 }
+
 curl_close($ch);
